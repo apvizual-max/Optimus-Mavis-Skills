@@ -472,6 +472,7 @@ export const CodeBlockCopyButton = ({
 
   return (
     <Button
+      aria-label={isCopied ? "Copied to clipboard" : "Copy to clipboard"}
       className={cn("shrink-0", className)}
       onClick={copyToClipboard}
       size="icon"

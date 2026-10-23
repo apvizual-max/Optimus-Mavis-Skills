@@ -30,16 +30,17 @@ logging.basicConfig(
 )
 
 
-async def run_command_async(cmd: str) -> str:
-  """Runs a shell command asynchronously and returns the stdout."""
-  process = await asyncio.create_subprocess_shell(
-      cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+async def run_command_async(cmd: list[str]) -> str:
+  """Runs a command asynchronously and returns the stdout."""
+  process = await asyncio.create_subprocess_exec(
+      *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
   )
   stdout, stderr = await process.communicate()
 
   if process.returncode != 0:
+    cmd_str = ' '.join(cmd)
     raise RuntimeError(
-        f"Command failed: {cmd}\nError: {stderr.decode('utf-8')}"
+        f"Command failed: {cmd_str}\nError: {stderr.decode('utf-8')}"
     )
 
   return stdout.decode("utf-8")
@@ -47,10 +48,10 @@ async def run_command_async(cmd: str) -> str:
 
 async def get_table_row_count(table_ref: str) -> int:
   """Gets the row count of a BigQuery table using count(*)."""
-  cmd = (
-      "bq query --quiet --nouse_legacy_sql --format=json "
-      f"'SELECT count(*) as count FROM `{table_ref}`'"
-  )
+  cmd = [
+      "bq", "query", "--quiet", "--nouse_legacy_sql", "--format=json",
+      f"SELECT count(*) as count FROM `{table_ref}`"
+  ]
   output = await run_command_async(cmd)
   try:
     results = json.loads(output)
@@ -115,20 +116,18 @@ async def create_and_wait_for_scan(
     )
 
   # Construct the base create command
-  create_cmd_parts = [
-      f"gcloud dataplex datascans create data-profile {profile_name}",
+  create_cmd = [
+      "gcloud", "dataplex", "datascans", "create", "data-profile", profile_name,
       f"--location={location}",
-      f'--data-source-resource="{data_source_resource}"',
+      f"--data-source-resource={data_source_resource}",
       f"--project={project}",
       "--one-time",
-      '--ttl-after-scan-completion="2400s"',
+      "--ttl-after-scan-completion=2400s",
       "--format=json",
   ]
 
   if sampling_percent is not None:
-    create_cmd_parts.append(f"--sampling-percent={sampling_percent}")
-
-  create_cmd = " ".join(create_cmd_parts)
+    create_cmd.append(f"--sampling-percent={sampling_percent}")
 
   logging.info("[%s] Creating Dataplex profile: %s", table_id, profile_name)
   try:
@@ -141,13 +140,13 @@ async def create_and_wait_for_scan(
     return
 
   # Construct the describe command to poll for results
-  describe_cmd = (
-      f"gcloud dataplex datascans describe {profile_name} "
-      f"--location={location} "
-      f"--project={project} "
-      "--view=full "
+  describe_cmd = [
+      "gcloud", "dataplex", "datascans", "describe", profile_name,
+      f"--location={location}",
+      f"--project={project}",
+      "--view=full",
       "--format=json"
-  )
+  ]
 
   logging.info("[%s] Waiting for profile results...", table_id)
   max_retries = 50

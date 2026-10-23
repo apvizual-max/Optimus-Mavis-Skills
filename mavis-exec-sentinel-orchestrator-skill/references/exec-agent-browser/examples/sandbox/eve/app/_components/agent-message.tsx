@@ -11,6 +11,7 @@ import {
   ToolOutput,
 } from "@/components/ai-elements/tool";
 import { Button } from "@/components/ui/button";
+import { memo } from "react";
 
 export type AgentInputResponse = {
   readonly optionId?: string;
@@ -18,7 +19,9 @@ export type AgentInputResponse = {
   readonly text?: string;
 };
 
-export function AgentMessage({
+// ⚡ Bolt Optimization: Memoize AgentMessage to prevent unnecessary re-renders of older messages
+// when a new message is streaming in. This significantly reduces React reconciliation overhead.
+export const AgentMessage = memo(function AgentMessage({
   canRespond,
   isStreaming,
   message,
@@ -52,9 +55,11 @@ export function AgentMessage({
       </MessageContent>
     </Message>
   );
-}
+});
 
-function AgentMessagePart({
+// ⚡ Bolt Optimization: Memoize AgentMessagePart to prevent re-rendering all previous message parts
+// (like earlier text chunks or tool calls) when a new part streams in.
+const AgentMessagePart = memo(function AgentMessagePart({
   canRespond,
   onInputResponses,
   part,
@@ -104,7 +109,7 @@ function AgentMessagePart({
         </Tool>
       );
   }
-}
+});
 
 function InputRequestActions({
   canRespond,

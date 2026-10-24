@@ -78,7 +78,7 @@ export const ToolHeader = ({
   const derivedName = type === "dynamic-tool" ? toolName : type.split("-").slice(1).join("-");
 
   return (
-    <CollapsibleTrigger
+    <CollapsibleTrigger aria-label={`Toggle ${title ?? derivedName} tool details`}
       className={cn("flex w-full items-center justify-between gap-4 p-3", className)}
       {...props}
     >

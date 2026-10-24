@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  ai: 7.0.0-beta.178
+
 packageExtensionsChecksum: sha256-BFhBLA/f31bB0k2tXO+iMR5SW/1jSh3kajFaFo0OpeI=
 
 importers:
@@ -115,11 +118,6 @@ packages:
 
   '@agent-browser/sandbox@file:../../../packages/@agent-browser/sandbox':
     resolution: {directory: ../../../packages/@agent-browser/sandbox, type: directory}
-    peerDependencies:
-      '@vercel/sandbox': '>=1.0.0'
-    peerDependenciesMeta:
-      '@vercel/sandbox':
-        optional: true
 
   '@ai-sdk/gateway@4.0.0-beta.109':
     resolution: {integrity: sha512-W/1kLlPb6Bgbhwep3CA3R6do0HD7SXV5gyuz2XBLY1YABqgxYkw+IhEcjOYlmn9v+Tifjqy5yJqmWdSHMJhyPQ==}
@@ -1700,7 +1698,7 @@ packages:
     peerDependencies:
       '@ai-sdk/mcp': ^1 || ^2
       '@auth/core': '>=0.37.0'
-      ai: ^6 || ^7
+      ai: 7.0.0-beta.178
       better-auth: '>=1.5.0'
       eve: '>=0.6.0-beta.1'
     peerDependenciesMeta:

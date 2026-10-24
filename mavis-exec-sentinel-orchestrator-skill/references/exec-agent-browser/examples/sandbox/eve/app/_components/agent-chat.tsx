@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import { useEveAgent } from "eve/react";
 import { AlertCircleIcon } from "lucide-react";
 import {
@@ -14,7 +15,7 @@ import {
   PromptInputTextarea,
 } from "@/components/ai-elements/prompt-input";
 import { cn } from "@/lib/utils";
-import { AgentMessage } from "./agent-message";
+import { AgentMessage, type AgentInputResponse } from "./agent-message";
 
 const AGENT_NAME = "Agent Browser Sandbox";
 const BETA_TERMS_HREF = "https://vercel.com/docs/release-phases/public-beta-agreement";
@@ -32,6 +33,12 @@ export function AgentChat() {
 
     await agent.send({ message: text });
   };
+
+  const handleInputResponses = useCallback(
+    (inputResponses: readonly AgentInputResponse[]) => agent.send({ inputResponses }),
+    [agent.send], // ⚡ Bolt Optimization: Dependent only on stable send method to prevent re-renders
+  );
+
 
   const composer = (
     <PromptInput onSubmit={handleSubmit}>
@@ -82,7 +89,7 @@ export function AgentChat() {
                 }
                 key={message.id}
                 message={message}
-                onInputResponses={(inputResponses) => agent.send({ inputResponses })}
+                onInputResponses={handleInputResponses}
               />
             ))}
           </ConversationContent>

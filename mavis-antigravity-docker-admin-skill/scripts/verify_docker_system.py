@@ -13,7 +13,8 @@ def audit_docker():
     print("=== DOCKER SYSTEM AUDIT (50 CONTAINERS / 18 PORTS) ===")
     
     try:
-        proc = subprocess.run('docker ps --format json', shell=True, capture_output=True, text=True, timeout=30)
+        # Security enhancement: Use array-based arguments and remove shell=True
+        proc = subprocess.run(['docker', 'ps', '--format', 'json'], capture_output=True, text=True, timeout=30)
         if proc.returncode != 0:
             print(f"[FAIL] Docker daemon unreachable: {proc.stderr}")
             sys.exit(1)

@@ -25,7 +25,7 @@ def fmt_time(iso_str: str) -> str:
     try:
         dt = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
         return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
-    except Exception:
+    except (ValueError, TypeError):
         return iso_str or "unknown"
 
 
@@ -48,7 +48,7 @@ def main():
     print("║     Antigravity Bridge Status                ║")
     print("╚══════════════════════════════════════════════╝")
     print()
-    print(f"  Bridge:   ACTIVE")
+    print("  Bridge:   ACTIVE")
     print(f"  Inbox:    {len(inbox_tasks)} pending task(s)")
     print(f"  Outbox:   {len(outbox_responses)} response(s) awaiting Hermes pickup")
     print(f"  History:  {len(history_items)} archived task(s)")
@@ -58,8 +58,8 @@ def main():
             status = json.loads(STATUS_FILE.read_text(encoding="utf-8"))
             updated = fmt_time(status.get("updated_at", ""))
             print(f"  Updated:  {updated}")
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"  Warning: Could not read status file: {e}")
 
     print()
 
@@ -101,8 +101,8 @@ def main():
                 status = task.get("status", "?")
                 completed = fmt_time(task.get("completed_at", ""))
                 print(f"  [{status.upper()}] {f.stem} | {completed}")
-            except Exception:
-                print(f"  {f.stem}")
+            except Exception as e:
+                print(f"  {f.stem} (ERROR: {e})")
 
 
 if __name__ == "__main__":

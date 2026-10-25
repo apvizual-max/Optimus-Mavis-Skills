@@ -33,6 +33,7 @@ import os
 import re
 import sys
 import datetime
+import concurrent.futures
 
 HERMES = r"C:\Users\apviz\AppData\Local\hermes"
 ROOTS = [
@@ -71,8 +72,26 @@ def sha(p):
     return hashlib.sha256(open(p, "rb").read()).hexdigest()[:16]
 
 
+def _scan_file(p):
+    try:
+        lines = io.open(p, "r", encoding="utf-8", errors="ignore").read().splitlines()
+    except OSError:
+        return None
+    found = []
+    for i, line in enumerate(lines):
+        for label, pat in CRUSHERS:
+            if pat.search(line):
+                ctx = " ".join(lines[max(0, i - 2): i + 3])
+                if not GUARDED.search(ctx):
+                    found.append((label, i + 1, line.strip()[:100]))
+    if found:
+        return (p, found)
+    return None
+
+
 def scan_crushers():
     hits = []
+    files_to_scan = []
     for root in ROOTS:
         if not os.path.isdir(root):
             continue
@@ -81,20 +100,14 @@ def scan_crushers():
             for f in fn:
                 if not f.lower().endswith(EXT):
                     continue
-                p = os.path.join(dp, f)
-                try:
-                    lines = io.open(p, "r", encoding="utf-8", errors="ignore").read().splitlines()
-                except OSError:
-                    continue
-                found = []
-                for i, line in enumerate(lines):
-                    for label, pat in CRUSHERS:
-                        if pat.search(line):
-                            ctx = " ".join(lines[max(0, i - 2): i + 3])
-                            if not GUARDED.search(ctx):
-                                found.append((label, i + 1, line.strip()[:100]))
-                if found:
-                    hits.append((p, found))
+                files_to_scan.append(os.path.join(dp, f))
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        results = executor.map(_scan_file, files_to_scan, chunksize=100)
+        for res in results:
+            if res:
+                hits.append(res)
+
     return hits
 
 

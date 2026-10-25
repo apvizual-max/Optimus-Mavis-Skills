@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+import logging
 
 def format_size(size_bytes):
     """Formats file size in bytes to a human-readable string."""
@@ -30,8 +31,8 @@ def parse_fps(fps_str):
                 if val.is_integer():
                     return f"{int(val)} fps"
                 return f"{val:.2f} fps"
-        except (ValueError, ZeroDivisionError):
-            pass
+        except (ValueError, ZeroDivisionError) as e:
+            logging.debug("Failed to parse fractional FPS '%s': %s", fps_str, e)
     try:
         val = float(fps_str)
         if val.is_integer():

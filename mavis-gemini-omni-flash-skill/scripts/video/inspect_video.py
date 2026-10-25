@@ -190,7 +190,10 @@ def main():
             else:
                 print_terminal_report(info)
     except Exception as e:
-        print(f"Error inspecting video: {e}", file=sys.stderr)
+        import re
+        def sanitize_error(err):
+            return re.sub(r'([?&](?:key|api_key|apiKey|access_token|auth|signature)=)[^&\s"\'<>()]+', r'\1[REDACTED]', str(err))
+        print(f"Error inspecting video: {sanitize_error(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

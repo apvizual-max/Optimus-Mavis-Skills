@@ -56,7 +56,7 @@ def send_rpc(proc, method: str, params: dict, id_: int = 1) -> dict:
     return json.loads(raw)
 
 
-def test_server(name: str, cmd: list, min_tools: int = 1,
+def run_test_server(name: str, cmd: list, min_tools: int = 1,
                 spot_check_tool: Optional[str] = None) -> bool:
     print(f"\n{'='*50}")
     print(f"Testing: {name}")
@@ -130,7 +130,7 @@ def main():
 
     results = {}
     for name, config in servers_to_test:
-        results[name] = test_server(
+        results[name] = run_test_server(
             name, config["cmd"],
             min_tools=config["min_tools"],
             spot_check_tool=config.get("spot_check_tool")

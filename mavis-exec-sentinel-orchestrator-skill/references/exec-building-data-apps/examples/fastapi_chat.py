@@ -139,5 +139,7 @@ async def chat(request: ChatRequestModel):
       yield "data: " + json.dumps(error_dict) + "\n\n"
       yield "data: [DONE]\n\n"
 
-  # Return as Server-Sent Events stream
-  return StreamingResponse(event_generator(), media_type="text/event-stream")
+  # Return as Server-Sent Events stream with CSP header for security
+  response = StreamingResponse(event_generator(), media_type="text/event-stream")
+  response.headers["Content-Security-Policy"] = "default-src 'self'"
+  return response

@@ -248,7 +248,8 @@ def main():
         print()
 
     except Exception as e:
-        print(f"Error prepping video: {e}", file=sys.stderr)
+        from upload_file import sanitize_error
+        print(f"Error prepping video: {sanitize_error(e)}", file=sys.stderr)
         sys.exit(1)
 
 if __name__ == "__main__":

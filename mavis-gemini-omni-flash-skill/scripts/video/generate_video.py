@@ -157,7 +157,7 @@ def argparse_duration_type(value):
     try:
         return parse_and_validate_duration(value)
     except ValueError as e:
-        raise argparse.ArgumentTypeError(str(e))
+        raise argparse.ArgumentTypeError(sanitize_error(e))
 
 def parse_and_validate_resolution(value):
     """Validates and normalizes video output resolution to '360p', '720p', '1080p', or '4k'."""
@@ -180,7 +180,7 @@ def argparse_resolution_type(value):
     try:
         return parse_and_validate_resolution(value)
     except ValueError as e:
-        raise argparse.ArgumentTypeError(str(e))
+        raise argparse.ArgumentTypeError(sanitize_error(e))
 
 def resolve_or_upload_asset(asset_path, mime_type, strip_audio=False):
     """

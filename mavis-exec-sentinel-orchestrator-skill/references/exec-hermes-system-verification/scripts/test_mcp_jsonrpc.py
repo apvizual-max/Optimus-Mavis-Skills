@@ -111,9 +111,10 @@ def test_server(name: str, cmd: list, min_tools: int = 1,
     except Exception as e:
         print(f"  RESULT: FAILED ✗ — {e}")
         try:
-            proc.terminate()
-        except Exception:
-            pass
+            if 'proc' in locals() and proc:
+                proc.terminate()
+        except Exception as cleanup_err:
+            print(f"  CLEANUP FAILED: {cleanup_err}")
         return False
 
 

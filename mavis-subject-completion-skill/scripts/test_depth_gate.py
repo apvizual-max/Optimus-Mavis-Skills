@@ -708,11 +708,37 @@ def t8_audited_adversarial():
            e_ok is False, "R4=%s -- deliberate floor, disclosed" % e_ok)
 
 
+
+def t9_evidence_tokens_edge_cases():
+    print("\nT9  EVIDENCE TOKENS EDGE CASES")
+
+    cases = [
+        ("T9.1 None yields empty", None, set()),
+        ("T9.2 empty string yields empty", "", set()),
+        ("T9.3 stopwords only yields empty", "the and for that this with", set()),
+        ("T9.4 placeholders only yields empty", "verified tested works fine done", set()),
+        ("T9.5 numerals get prefix", "123 456", {"\x00123", "\x00456"}),
+        ("T9.6 alphanumeric numerals get prefix", "v0.21.5 9/9 M3", {"\x00v0.21.5", "\x009/9", "\x00m3"}),
+        ("T9.7 plain english words length >= 4", "endpoints network connection", {"endpoints", "network", "connection"}),
+        ("T9.8 short plain words are excluded", "net con", set()),
+        ("T9.9 punctuation is stripped", "hello, world! (test) [done]", {"hello", "world", "test"}),
+        ("T9.10 CJK grouped by 4 chars", "测试测试", {"\x00u0", "测试测试"}),
+        ("T9.11 CJK grouped by 4 chars (8 chars)", "测试测试测试测试", {"\x00u0", "\x00u1", "测试测试测试测试"}),
+        ("T9.12 whitespace strings yield empty", "  \n\t  ", set()),
+        ("T9.13 punctuation only yield empty", "!!! ...", set()),
+    ]
+
+    for name, input_val, expected in cases:
+        actual = depth_gate._evidence_tokens(input_val)
+        record(name, actual == expected, "expected %r, got %r" % (expected, actual))
+
+
 def main():
     print("=" * 78)
     print("test_depth_gate.py -- does the gate discriminate?")
     print("=" * 78)
     for fn in (t1_can_pass, t2_each_rule_catches, t3_sensitive,
+               t9_evidence_tokens_edge_cases,
                t4_reports_every_failure, t5_shape_abuse, t6_self_consistency,
                t7_honest_paraphrase_passes, t8_audited_adversarial):
         fn()

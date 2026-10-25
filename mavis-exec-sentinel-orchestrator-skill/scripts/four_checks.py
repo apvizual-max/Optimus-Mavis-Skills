@@ -49,9 +49,15 @@ def rec(name, ok, detail):
 
 
 # ---------------------------------------------------------------- CHECK 1
+TARGET = os.path.join(HERMES, "config.yaml")
+
 def check1_bytes():
     print("\nCHECK 1 — bytes on disk (what the file literally says)")
-    t = io.open(os.path.join(HERMES, "config.yaml"), encoding="utf-8").read()
+    if os.path.exists(TARGET):
+        size = os.path.getsize(TARGET)
+        if size < 100: return False
+
+    t = io.open(TARGET, encoding="utf-8").read()
     md = re.search(r"(?ms)^model:\n(.*?)(?=^[a-zA-Z_])", t)
     body = md.group(1) if md else ""
     ok = all(x in body for x in PRIMARY)
@@ -84,6 +90,7 @@ def check1_bytes():
         p_pairs = re.findall(r"  - provider: (\S+)\n    model: (\S+)", pp.group(1)) if pp else []
         rec("C1 %s tier" % prof, bool(m) and m.group(1) == tier and p_pairs[:3] == LADDER,
             "tier=%s ladder_first=%s" % (m.group(1) if m else "?", p_pairs[:3] == LADDER))
+    return True
 
 
 # ---------------------------------------------------------------- CHECK 2

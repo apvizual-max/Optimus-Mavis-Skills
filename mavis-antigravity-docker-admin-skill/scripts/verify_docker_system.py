@@ -11,9 +11,8 @@ import sys
 
 def audit_docker():
     print("=== DOCKER SYSTEM AUDIT (50 CONTAINERS / 18 PORTS) ===")
-    
+
     try:
-        # Security enhancement: Use array-based arguments and remove shell=True
         proc = subprocess.run(['docker', 'ps', '--format', 'json'], capture_output=True, text=True, timeout=30)
         if proc.returncode != 0:
             print(f"[FAIL] Docker daemon unreachable: {proc.stderr}")
@@ -24,19 +23,19 @@ def audit_docker():
 
     items = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()]
     total_count = len(items)
-    
+
     apviz = [i['Names'] for i in items if 'com.docker.compose.project=apviz' in i.get('Labels', '')]
     mcp = [i['Names'] for i in items if 'com.docker.compose.project=mcp-servers' in i.get('Labels', '')]
-    
+
     print(f"Total Running Containers: {total_count} (Expected: 50)")
     print(f"  - APVIZ Stack Containers: {len(apviz)} (Expected: 19)")
     print(f"  - Hermes MCP Containers:  {len(mcp)} (Expected: 31)")
-    
+
     # Port Binding Audit
     unhardened = []
     published_count = 0
     vault_port_ok = False
-    
+
     for item in items:
         cname = item['Names']
         ports = item.get('Ports', '')
@@ -47,7 +46,7 @@ def audit_docker():
             for m in mappings:
                 if '0.0.0.0:' in m:
                     unhardened.append((cname, m))
-                    
+
         if cname == 'vault' and '8201->8200' in ports:
             vault_port_ok = True
 

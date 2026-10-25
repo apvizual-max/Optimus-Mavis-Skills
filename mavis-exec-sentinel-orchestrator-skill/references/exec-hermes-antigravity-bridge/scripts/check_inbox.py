@@ -11,6 +11,7 @@ Usage:
 
 import json
 import argparse
+import concurrent.futures
 from pathlib import Path
 from datetime import datetime
 
@@ -24,15 +25,22 @@ PRIORITY_ORDER = {"urgent": 0, "high": 1, "normal": 2, "low": 3}
 
 def fmt_time(iso_str: str) -> str:
     try:
-        dt = datetime.fromisoformat(iso_str.replace('Z', '+00:00'))
+        dt = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
         return dt.strftime("%Y-%m-%d %H:%M:%S UTC")
     except Exception:
         return iso_str
 
 
+def _read_task_file(f: Path):
+    try:
+        return json.loads(f.read_text(encoding="utf-8")), None, f.name
+    except Exception as e:
+        return None, str(e), f.name
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--full', action='store_true', help='Show full task content')
+    parser.add_argument("--full", action="store_true", help="Show full task content")
     args = parser.parse_args()
 
     # Ensure dirs exist
@@ -40,23 +48,29 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
 
     tasks = []
-    for f in INBOX.glob("*.json"):
-        try:
-            task = json.loads(f.read_text(encoding="utf-8"))
-            tasks.append(task)
-        except Exception as e:
-            print(f"  [ERROR] Cannot read {f.name}: {e}")
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for task, error, fname in executor.map(_read_task_file, INBOX.glob("*.json")):
+            if task is not None:
+                tasks.append(task)
+            if error is not None:
+                print(f"  [ERROR] Cannot read {fname}: {error}")
 
     if not tasks:
         print("INBOX: Empty — no pending tasks from Hermes.")
         pending_resp = list(OUTBOX.glob("*.json"))
         if pending_resp:
-            print(f"\nOUTBOX: {len(pending_resp)} response(s) ready for Hermes to pick up")
+            print(
+                f"\nOUTBOX: {len(pending_resp)} response(s) ready for Hermes to pick up"
+            )
         return
 
     # Sort by priority then by creation time
-    tasks.sort(key=lambda t: (PRIORITY_ORDER.get(t.get("priority", "normal"), 2),
-                               t.get("created_at", "")))
+    tasks.sort(
+        key=lambda t: (
+            PRIORITY_ORDER.get(t.get("priority", "normal"), 2),
+            t.get("created_at", ""),
+        )
+    )
 
     print(f"INBOX: {len(tasks)} pending task(s)\n")
     print("-" * 70)
@@ -84,7 +98,9 @@ def main():
         print()
 
     print("-" * 70)
-    print(f"\nOutbox: {len(list(OUTBOX.glob('*.json')))} response(s) pending Hermes pickup")
+    print(
+        f"\nOutbox: {len(list(OUTBOX.glob('*.json')))} response(s) pending Hermes pickup"
+    )
     print(f"History: {len(list(HISTORY.glob('*.json')))} archived tasks")
 
 

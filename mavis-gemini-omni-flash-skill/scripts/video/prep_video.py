@@ -96,8 +96,8 @@ def prep_video(input_path, output_path, start_time_str=None, duration=10, fps=No
     try:
         if size_bytes_str and int(size_bytes_str) > 25 * 1024 * 1024:
             is_large = True
-    except (ValueError, TypeError):
-        pass
+    except (ValueError, TypeError) as e:
+        print(f"Warning: Could not parse video size '{size_bytes_str}' ({e}). Assuming not large.", file=sys.stderr)
 
     # Target resolution parsing
     scale_filter = None
@@ -107,8 +107,8 @@ def prep_video(input_path, output_path, start_time_str=None, duration=10, fps=No
         try:
             orig_width = int(source_info["video"].get("width"))
             orig_height = int(source_info["video"].get("height"))
-        except (ValueError, TypeError):
-            pass
+        except (ValueError, TypeError) as e:
+            print(f"Warning: Could not parse original video dimensions ({e}).", file=sys.stderr)
 
     if resolution:
         try:

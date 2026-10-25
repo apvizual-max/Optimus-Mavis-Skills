@@ -20,7 +20,7 @@ import 'dotenv/config';
 import express from 'express';
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : 'http://localhost:3000' }));
 app.use(express.json());
 
 const chatClient = new DataChatServiceClient();

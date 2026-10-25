@@ -26,6 +26,7 @@ GUARD over two things:
 Exit codes: 0 clean, 1 policy violations, 2 config drift.
 Run it any time; it is read-only except for its own report file.
 """
+
 import hashlib
 import io
 import json
@@ -55,16 +56,36 @@ LADDER = ["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed"]
 
 # Patterns that indicate an instruction capable of rewriting model routing.
 CRUSHERS = [
-    ("writes model.default", re.compile(r"(?i)(write|set|change|update|modify|patch|edit)\b[^.\n]{0,40}\bmodel\.default\b")),
-    ("writes fallback_providers", re.compile(r"(?i)(write|set|change|update|modify|patch|edit|replace)\b[^.\n]{0,40}\bfallback_providers\b")),
-    ("rewrites models.py", re.compile(r"(?i)(open|write|patch|modify)\b[^.\n]{0,60}\bmodels\.py\b")),
-    ("edits config.yaml", re.compile(r"(?i)(>|\btee\b|Set-Content|write_text|open\([^)]*['\"]w)[\s\S]{0,40}config\.yaml")),
+    (
+        "writes model.default",
+        re.compile(
+            r"(?i)(write|set|change|update|modify|patch|edit)\b[^.\n]{0,40}\bmodel\.default\b"
+        ),
+    ),
+    (
+        "writes fallback_providers",
+        re.compile(
+            r"(?i)(write|set|change|update|modify|patch|edit|replace)\b[^.\n]{0,40}\bfallback_providers\b"
+        ),
+    ),
+    (
+        "rewrites models.py",
+        re.compile(r"(?i)(open|write|patch|modify)\b[^.\n]{0,60}\bmodels\.py\b"),
+    ),
+    (
+        "edits config.yaml",
+        re.compile(
+            r"(?i)(>|\btee\b|Set-Content|write_text|open\([^)]*['\"]w)[\s\S]{0,40}config\.yaml"
+        ),
+    ),
     ("deletes model cache", re.compile(r"(?i)delete[^\n]{0,50}provider_models_cache")),
     ("hermes model command", re.compile(r"(?i)`?\bhermes\s+model\b")),
     ("config-version bump", re.compile(r"(?i)_config_version\s*[:=]")),
 ]
-GUARDED = re.compile(r"(?i)forbidden|never\b|do not|must not|withdrawn|CORRECTED"
-                     r"|ROOT CAUSE|not free|do not re-add|prohibit")
+GUARDED = re.compile(
+    r"(?i)forbidden|never\b|do not|must not|withdrawn|CORRECTED"
+    r"|ROOT CAUSE|not free|do not re-add|prohibit"
+)
 
 
 def sha(p):
@@ -83,14 +104,18 @@ def scan_crushers():
                     continue
                 p = os.path.join(dp, f)
                 try:
-                    lines = io.open(p, "r", encoding="utf-8", errors="ignore").read().splitlines()
+                    lines = (
+                        io.open(p, "r", encoding="utf-8", errors="ignore")
+                        .read()
+                        .splitlines()
+                    )
                 except OSError:
                     continue
                 found = []
                 for i, line in enumerate(lines):
                     for label, pat in CRUSHERS:
                         if pat.search(line):
-                            ctx = " ".join(lines[max(0, i - 2): i + 3])
+                            ctx = " ".join(lines[max(0, i - 2) : i + 3])
                             if not GUARDED.search(ctx):
                                 found.append((label, i + 1, line.strip()[:100]))
                 if found:
@@ -109,26 +134,51 @@ def check_config():
         if got != want:
             drift.append(("config.yaml", key, want, got))
     # tier 1 must be the first three entries
-    fp = re.search(r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)", t)
+    fp = re.search(
+        r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)", t
+    )
     if not fp:
         drift.append(("config.yaml", "fallback_providers", "present", "MISSING"))
     else:
         models = re.findall(r"    model: (\S+)", fp.group(1))
         if models[:3] != LADDER:
-            drift.append(("config.yaml", "fallback_providers[0:3]", str(LADDER), str(models[:3])))
+            drift.append(
+                ("config.yaml", "fallback_providers[0:3]", str(LADDER), str(models[:3]))
+            )
     # every profile: parse and check ladder-first
     prof = os.path.join(HERMES, "profiles")
-    for name in sorted(os.listdir(prof)):
-        p = os.path.join(prof, name, "config.yaml")
-        if not os.path.isfile(p):
+
+    pm_re = re.compile(
+        r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)"
+    )
+    ms_re = re.compile(r"    model: (\S+)")
+
+    try:
+        entries = sorted(
+            [e for e in os.scandir(prof) if e.is_dir()], key=lambda e: e.name
+        )
+    except OSError:
+        entries = []
+
+    for entry in entries:
+        p = os.path.join(entry.path, "config.yaml")
+        try:
+            pt = io.open(p, encoding="utf-8").read()
+        except OSError:
             continue
-        pt = io.open(p, encoding="utf-8").read()
-        pm = re.search(r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)", pt)
+
+        pm = pm_re.search(pt)
         if pm:
-            ms = re.findall(r"    model: (\S+)", pm.group(1))
+            ms = ms_re.findall(pm.group(1))
             if ms[:3] != LADDER:
-                drift.append((os.path.join("profiles", name, "config.yaml"),
-                              "fallback_providers[0:3]", str(LADDER), str(ms[:3])))
+                drift.append(
+                    (
+                        os.path.join("profiles", entry.name, "config.yaml"),
+                        "fallback_providers[0:3]",
+                        str(LADDER),
+                        str(ms[:3]),
+                    )
+                )
     return drift
 
 
@@ -153,9 +203,13 @@ def main():
     print("\n[G2] live-config integrity against the ratified state")
     drift = check_config()
     if not drift:
-        print("   CLEAN — model.default=MiniMax-M3, provider=minimax, Tier-1 ladder first")
+        print(
+            "   CLEAN — model.default=MiniMax-M3, provider=minimax, Tier-1 ladder first"
+        )
     for f, key, want, got in drift:
-        print("   DRIFT %s :: %s\n        want %s\n        got  %s" % (f, key, want, got))
+        print(
+            "   DRIFT %s :: %s\n        want %s\n        got  %s" % (f, key, want, got)
+        )
 
     baseline = {
         "captured": datetime.datetime.now().isoformat(timespec="seconds"),
@@ -171,7 +225,9 @@ def main():
     if drift:
         print("\nVERDICT: CONFIG DRIFT (exit 2)")
         return 2
-    print("\nVERDICT: config intact. %d crusher file(s) to review manually." % len(hits))
+    print(
+        "\nVERDICT: config intact. %d crusher file(s) to review manually." % len(hits)
+    )
     return 0
 
 

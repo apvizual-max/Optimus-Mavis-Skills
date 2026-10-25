@@ -15,6 +15,8 @@ import re
 import sys
 import argparse
 from pathlib import Path
+import concurrent.futures
+import os
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -69,6 +71,7 @@ def run(root: Path, summary_only: bool = False):
     total_files = 0
     results = []
 
+    paths_to_scan = []
     for path in root.rglob('*'):
         if not path.is_file():
             continue
@@ -76,12 +79,25 @@ def run(root: Path, summary_only: bool = False):
             continue
         if path.suffix.lower() not in TEXT_EXTENSIONS:
             continue
+        paths_to_scan.append(path)
 
-        hits = scan_file(path)
-        if hits:
-            total_files += 1
-            total_matches += len(hits)
-            results.append((path, hits))
+    # Use ProcessPoolExecutor to scan files concurrently because regex parsing is CPU-bound in Python
+    # The number of workers matches os.cpu_count() for CPU-bound tasks
+    max_workers = os.cpu_count() or 1
+    with concurrent.futures.ProcessPoolExecutor(max_workers=max_workers) as executor:
+        # submit all paths for scanning
+        future_to_path = {executor.submit(scan_file, p): p for p in paths_to_scan}
+
+        for future in concurrent.futures.as_completed(future_to_path):
+            path = future_to_path[future]
+            try:
+                hits = future.result()
+                if hits:
+                    total_files += 1
+                    total_matches += len(hits)
+                    results.append((path, hits))
+            except Exception as e:
+                print(f"Error scanning {path}: {e}", file=sys.stderr)
 
     if not summary_only:
         for path, hits in sorted(results, key=lambda x: str(x[0])):

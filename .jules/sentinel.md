@@ -2,3 +2,6 @@
 **Vulnerability:** Found `asyncio.create_subprocess_shell` with f-strings and user inputs in Dataplex scanner scripts, allowing for arbitrary command execution. Also found `subprocess.run(..., shell=True)` with hardcoded commands in Docker admin scripts.
 **Learning:** Python scripts in this codebase sometimes use `shell=True` and `create_subprocess_shell` for convenience when executing CLI tools like `bq`, `gcloud`, or `docker`. This pattern is risky, especially when user inputs are involved, as it bypasses the shell's argument parsing and allows for command injection.
 **Prevention:** Always refactor subprocess calls to use list-based arguments with `subprocess.run(..., shell=False)` or `asyncio.create_subprocess_exec(...)`. This ensures arguments are passed directly to the executable without shell interpolation, eliminating the risk of command injection. Be careful to remove shell-specific escaping (like nested quotes for arguments) when migrating.
+## 2024-10-25 - Restricting Express CORS
+**Learning:** The default `cors()` middleware in Express is overly permissive and allows all origins, creating a cross-origin security vulnerability.
+**Action:** Always configure `cors()` with a strict `origin` list, ideally populated dynamically via environment variables with a safe fallback for local development.

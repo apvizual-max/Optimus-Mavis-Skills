@@ -20,7 +20,11 @@ import 'dotenv/config';
 import express from 'express';
 
 const app = express();
-app.use(cors());
+// Security: Restrict CORS to trusted origins to prevent unauthorized cross-origin requests.
+const allowedOrigins = process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'];
+app.use(cors({
+  origin: allowedOrigins
+}));
 app.use(express.json());
 
 const chatClient = new DataChatServiceClient();

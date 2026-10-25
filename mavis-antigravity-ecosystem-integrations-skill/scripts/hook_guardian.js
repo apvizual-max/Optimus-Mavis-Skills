@@ -22,40 +22,54 @@ function sanitizePath(p) {
   return p.replace(/^["']|["']$/g, '').trim();
 }
 
-const args = process.argv.slice(2);
-let targetScript = '';
+function processHooks(hooks) {
+    return hooks.filter(h => h.active).map(h => ({
+        ...h,
+        processedAt: new Date().toISOString(),
+        status: 'ready'
+    }));
+}
 
-for (let i = 0; i < args.length; i++) {
-  if (args[i] === '--target' && i + 1 < args.length) {
-    targetScript = sanitizePath(args[i + 1]);
-    break;
+if (require.main === module) {
+  const args = process.argv.slice(2);
+  let targetScript = '';
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--target' && i + 1 < args.length) {
+      targetScript = sanitizePath(args[i + 1]);
+      break;
+    }
+  }
+
+  if (!targetScript) {
+    log('WARN: No target script provided to Hook Guardian. Exiting cleanly.');
+    process.exit(0);
+  }
+
+  if (!fs.existsSync(targetScript)) {
+    log(`WARN: Target script does not exist: ${targetScript}. Suppressing failure to protect agent tool loop.`);
+    process.exit(0);
+  }
+
+  try {
+    const res = spawnSync(process.execPath, [targetScript, ...args.slice(2)], {
+      stdio: 'inherit',
+      encoding: 'utf-8',
+      timeout: 10000
+    });
+
+    if (res.error) {
+      log(`ERROR: Script execution failed (${targetScript}): ${res.error.message}`);
+      process.exit(0); // Never fail the agent tool loop
+    }
+
+    process.exit(res.status || 0);
+  } catch (err) {
+    log(`UNHANDLED: ${err.message}`);
+    process.exit(0);
   }
 }
 
-if (!targetScript) {
-  log('WARN: No target script provided to Hook Guardian. Exiting cleanly.');
-  process.exit(0);
-}
-
-if (!fs.existsSync(targetScript)) {
-  log(`WARN: Target script does not exist: ${targetScript}. Suppressing failure to protect agent tool loop.`);
-  process.exit(0);
-}
-
-try {
-  const res = spawnSync(process.execPath, [targetScript, ...args.slice(2)], {
-    stdio: 'inherit',
-    encoding: 'utf-8',
-    timeout: 10000
-  });
-
-  if (res.error) {
-    log(`ERROR: Script execution failed (${targetScript}): ${res.error.message}`);
-    process.exit(0); // Never fail the agent tool loop
-  }
-
-  process.exit(res.status || 0);
-} catch (err) {
-  log(`UNHANDLED: ${err.message}`);
-  process.exit(0);
-}
+module.exports = {
+  processHooks
+};

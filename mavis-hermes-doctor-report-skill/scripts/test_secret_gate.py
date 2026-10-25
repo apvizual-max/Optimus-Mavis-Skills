@@ -19,8 +19,8 @@ from pathlib import Path
 # Force UTF-8 so a PASS/FAIL line never dies on its own message.
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
-except Exception:
-    pass
+except Exception as e:
+    print(f"Warning: Failed to reconfigure stdout encoding: {e}", file=sys.stderr)
 
 # The gate under test must be the one shipped NEXT TO THIS TEST.
 #

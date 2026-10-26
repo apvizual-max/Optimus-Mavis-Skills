@@ -10,9 +10,7 @@ A guard that cannot go red is decoration. This proves:
 Runs on throwaway content in a temp dir. Never reads the live repo's files.
 """
 import importlib.util
-import shutil
 import sys
-import tempfile
 from pathlib import Path
 
 # The Windows console here is cp1252 and cannot print Romanian diacritics.
@@ -20,6 +18,7 @@ from pathlib import Path
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 except Exception as e:
+    # Exception is handled to prevent test failure if reconfigure is unsupported
     print(f"Warning: Failed to reconfigure stdout encoding: {e}", file=sys.stderr)
 
 # The gate under test must be the one shipped NEXT TO THIS TEST.

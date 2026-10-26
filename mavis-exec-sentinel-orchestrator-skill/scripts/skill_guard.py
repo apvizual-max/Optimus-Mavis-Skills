@@ -33,6 +33,7 @@ import os
 import re
 import sys
 import datetime
+import concurrent.futures
 
 HERMES = r"C:\Users\apviz\AppData\Local\hermes"
 ROOTS = [
@@ -71,37 +72,52 @@ def sha(p):
     return hashlib.sha256(open(p, "rb").read()).hexdigest()[:16]
 
 
+def _scan_file(p):
+    try:
+        lines = io.open(p, "r", encoding="utf-8", errors="ignore").read().splitlines()
+    except OSError:
+        return None
+    found = []
+    for i, line in enumerate(lines):
+        for label, pat in CRUSHERS:
+            if pat.search(line):
+                ctx = " ".join(lines[max(0, i - 2): i + 3])
+                if not GUARDED.search(ctx):
+                    found.append((label, i + 1, line.strip()[:100]))
+    if found:
+        return (p, found)
+    return None
+
 def scan_crushers():
     hits = []
+    files_to_scan = []
     for root in ROOTS:
         if not os.path.isdir(root):
             continue
         for dp, dn, fn in os.walk(root):
             dn[:] = [d for d in dn if d not in SKIP]
             for f in fn:
-                if not f.lower().endswith(EXT):
-                    continue
-                p = os.path.join(dp, f)
-                try:
-                    lines = io.open(p, "r", encoding="utf-8", errors="ignore").read().splitlines()
-                except OSError:
-                    continue
-                found = []
-                for i, line in enumerate(lines):
-                    for label, pat in CRUSHERS:
-                        if pat.search(line):
-                            ctx = " ".join(lines[max(0, i - 2): i + 3])
-                            if not GUARDED.search(ctx):
-                                found.append((label, i + 1, line.strip()[:100]))
-                if found:
-                    hits.append((p, found))
+                if f.lower().endswith(EXT):
+                    files_to_scan.append(os.path.join(dp, f))
+
+    if not files_to_scan:
+        return hits
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for result in executor.map(_scan_file, files_to_scan, chunksize=100):
+            if result:
+                hits.append(result)
     return hits
 
 
 def check_config():
     drift = []
     root = os.path.join(HERMES, "config.yaml")
-    t = io.open(root, encoding="utf-8").read()
+    try:
+        t = io.open(root, encoding="utf-8").read()
+    except OSError:
+        drift.append(("config.yaml", "file", "present", "MISSING"))
+        return drift
     for key, want in RATIFIED.items():
         leaf = key.split(".")[-1]
         m = re.search(r"(?m)^\s*%s:\s*(\S+)" % re.escape(leaf), t)
@@ -159,9 +175,13 @@ def main():
 
     baseline = {
         "captured": datetime.datetime.now().isoformat(timespec="seconds"),
-        "root_config_sha": sha(os.path.join(HERMES, "config.yaml")),
+        "root_config_sha": "unknown",
         "crusher_files": len(hits),
     }
+    try:
+        baseline["root_config_sha"] = sha(os.path.join(HERMES, "config.yaml"))
+    except OSError:
+        pass
     try:
         io.open(STATE, "w", encoding="utf-8").write(json.dumps(baseline, indent=2))
     except OSError:

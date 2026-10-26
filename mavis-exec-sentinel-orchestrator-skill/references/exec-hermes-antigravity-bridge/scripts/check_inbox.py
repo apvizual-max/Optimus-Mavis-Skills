@@ -13,6 +13,7 @@ import json
 import argparse
 from pathlib import Path
 from datetime import datetime
+import concurrent.futures
 
 BRIDGE_ROOT = Path(r"C:\Users\apviz\AppData\Local\hermes\pairing\antigravity")
 INBOX = BRIDGE_ROOT / "inbox"
@@ -30,6 +31,13 @@ def fmt_time(iso_str: str) -> str:
         return iso_str
 
 
+def _read_task(f: Path):
+    try:
+        return (json.loads(f.read_text(encoding="utf-8")), None)
+    except Exception as e:
+        return (None, f"  [ERROR] Cannot read {f.name}: {e}")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--full', action='store_true', help='Show full task content')
@@ -40,12 +48,14 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
 
     tasks = []
-    for f in INBOX.glob("*.json"):
-        try:
-            task = json.loads(f.read_text(encoding="utf-8"))
-            tasks.append(task)
-        except Exception as e:
-            print(f"  [ERROR] Cannot read {f.name}: {e}")
+    files = list(INBOX.glob("*.json"))
+    if files:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            for task, err in executor.map(_read_task, files, chunksize=50):
+                if task is not None:
+                    tasks.append(task)
+                elif err:
+                    print(err)
 
     if not tasks:
         print("INBOX: Empty — no pending tasks from Hermes.")

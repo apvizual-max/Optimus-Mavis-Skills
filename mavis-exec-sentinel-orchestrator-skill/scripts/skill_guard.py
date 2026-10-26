@@ -33,6 +33,7 @@ import os
 import re
 import sys
 import datetime
+import concurrent.futures
 
 HERMES = r"C:\Users\apviz\AppData\Local\hermes"
 ROOTS = [
@@ -71,30 +72,53 @@ def sha(p):
     return hashlib.sha256(open(p, "rb").read()).hexdigest()[:16]
 
 
+def _scan_file(p):
+    try:
+        content = io.open(p, "r", encoding="utf-8", errors="ignore").read()
+    except OSError:
+        return None
+
+    any_match = False
+    for _, pat in CRUSHERS:
+        if pat.search(content):
+            any_match = True
+            break
+
+    if not any_match:
+        return None
+
+    lines = content.splitlines()
+    found = []
+    for i, line in enumerate(lines):
+        for label, pat in CRUSHERS:
+            if pat.search(line):
+                ctx = " ".join(lines[max(0, i - 2): i + 3])
+                if not GUARDED.search(ctx):
+                    found.append((label, i + 1, line.strip()[:100]))
+    if found:
+        return (p, found)
+    return None
+
 def scan_crushers():
-    hits = []
+    file_paths = []
     for root in ROOTS:
         if not os.path.isdir(root):
             continue
         for dp, dn, fn in os.walk(root):
             dn[:] = [d for d in dn if d not in SKIP]
             for f in fn:
-                if not f.lower().endswith(EXT):
-                    continue
-                p = os.path.join(dp, f)
-                try:
-                    lines = io.open(p, "r", encoding="utf-8", errors="ignore").read().splitlines()
-                except OSError:
-                    continue
-                found = []
-                for i, line in enumerate(lines):
-                    for label, pat in CRUSHERS:
-                        if pat.search(line):
-                            ctx = " ".join(lines[max(0, i - 2): i + 3])
-                            if not GUARDED.search(ctx):
-                                found.append((label, i + 1, line.strip()[:100]))
-                if found:
-                    hits.append((p, found))
+                if f.lower().endswith(EXT):
+                    file_paths.append(os.path.join(dp, f))
+
+    hits = []
+    if not file_paths:
+        return hits
+
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for result in executor.map(_scan_file, file_paths, chunksize=50):
+            if result:
+                hits.append(result)
+
     return hits
 
 

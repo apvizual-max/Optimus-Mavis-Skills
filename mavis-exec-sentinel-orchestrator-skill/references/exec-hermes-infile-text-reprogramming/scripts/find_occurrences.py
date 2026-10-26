@@ -70,23 +70,25 @@ def run(root: Path, summary_only: bool = False):
     total_files = 0
     results = []
 
-    valid_paths = []
-    for path in root.rglob('*'):
-        if not path.is_file():
-            continue
-        if should_exclude(path):
-            continue
-        if path.suffix.lower() not in TEXT_EXTENSIONS:
-            continue
-        valid_paths.append(path)
+    futures = []
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        for path in root.rglob('*'):
+            if not path.is_file():
+                continue
+            if should_exclude(path):
+                continue
+            if path.suffix.lower() not in TEXT_EXTENSIONS:
+                continue
 
-    if valid_paths:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            for path, hits in zip(valid_paths, executor.map(scan_file, valid_paths)):
-                if hits:
-                    total_files += 1
-                    total_matches += len(hits)
-                    results.append((path, hits))
+            # Optimized sequential synchronous file reading into concurrent futures
+            futures.append((path, executor.submit(scan_file, path)))
+
+        for path, future in futures:
+            hits = future.result()
+            if hits:
+                total_files += 1
+                total_matches += len(hits)
+                results.append((path, hits))
 
     if not summary_only:
         for path, hits in sorted(results, key=lambda x: str(x[0])):

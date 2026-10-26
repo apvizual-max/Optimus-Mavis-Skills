@@ -1,7 +1,3 @@
-## 2024-10-26 - [Avoid Private Attributes in Python concurrency]
-**Learning:** [Relying on internal or private attributes like `_max_workers` in `ThreadPoolExecutor` or `ProcessPoolExecutor` is fragile and can lead to bugs across Python versions.]
-**Action:** [Next time I use `concurrent.futures`, I will avoid accessing private properties or use documented public APIs to handle chunking, or let the executor manage defaults.]
-
-## 2024-10-26 - [ThreadPoolExecutor vs ProcessPoolExecutor]
-**Learning:** [For operations strictly defined as I/O-bound (like reading files), `ThreadPoolExecutor` is significantly more efficient because it avoids the overhead of inter-process communication and object pickling required by `ProcessPoolExecutor`.]
-**Action:** [Next time I need to optimize a blocking loop, I will carefully choose between threads (for I/O) and processes (for CPU) to minimize overhead.]
+## 2026-10-26 - [ThreadPoolExecutor vs ProcessPoolExecutor for I/O]
+**Learning:** ProcessPoolExecutor introduces significant IPC and memory overhead when passing strings/paths. For purely I/O bound operations like scanning thousands of small files where string passing is frequent, ThreadPoolExecutor often outperforms it in Python despite the GIL, especially when overlapping directory traversal with task submission. Fusing generator-based discovery directly into task submission reduces intermediate array allocations.
+**Action:** Always prefer ThreadPoolExecutor for file I/O operations. When iterating directories, submit tasks immediately rather than building a large intermediate list first.

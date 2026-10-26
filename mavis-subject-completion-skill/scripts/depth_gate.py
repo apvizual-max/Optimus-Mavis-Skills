@@ -406,5 +406,13 @@ def main(argv):
     return {"PASS": 0, "FAIL": 1}[verdict]
 
 
+
+def _simple_evidence_tokens(evidence):
+    # Removes punctuation, splits, filters to > 3 chars
+    if evidence is None:
+        evidence = ""
+    text = re.sub(r'[^\w\s]', ' ', evidence.lower())
+    return [w for w in text.split() if len(w) > 3 or w.isdigit()]
+
 if __name__ == "__main__":
     sys.exit(main(sys.argv))

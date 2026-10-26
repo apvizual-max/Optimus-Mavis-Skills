@@ -733,12 +733,29 @@ def t9_evidence_tokens_edge_cases():
         record(name, actual == expected, "expected %r, got %r" % (expected, actual))
 
 
+
+def t10_simple_evidence_tokens():
+    print("\nT10 SIMPLE EVIDENCE TOKENS EDGE CASES")
+
+    cases = [
+        ("T10.1 None yields empty", None, []),
+        ("T10.2 empty string yields empty", "", []),
+        ("T10.3 stopwords (len <= 3) yield empty", "the and for", []),
+        ("T10.4 plain english words len > 3", "endpoints network connection", ["endpoints", "network", "connection"]),
+        ("T10.5 numbers are included regardless of len", "200 9/9 43", ["200", "9", "9", "43"]),
+        ("T10.6 punctuation is stripped", "hello, world! (test) [done]", ["hello", "world", "test", "done"]),
+    ]
+
+    for name, input_val, expected in cases:
+        actual = depth_gate._simple_evidence_tokens(input_val)
+        record(name, actual == expected, "expected %r, got %r" % (expected, actual))
+
 def main():
     print("=" * 78)
     print("test_depth_gate.py -- does the gate discriminate?")
     print("=" * 78)
     for fn in (t1_can_pass, t2_each_rule_catches, t3_sensitive,
-               t9_evidence_tokens_edge_cases,
+               t9_evidence_tokens_edge_cases, t10_simple_evidence_tokens,
                t4_reports_every_failure, t5_shape_abuse, t6_self_consistency,
                t7_honest_paraphrase_passes, t8_audited_adversarial):
         fn()

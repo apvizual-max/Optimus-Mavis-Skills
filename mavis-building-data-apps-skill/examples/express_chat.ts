@@ -20,9 +20,12 @@ import "dotenv/config";
 import express from "express";
 
 const app = express();
+
+// Secure CORS configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",")
   : ["http://localhost:3000"];
+
 app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 

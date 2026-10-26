@@ -111,11 +111,16 @@ def test_check_config_drift_ladder_order(mock_open_file, mock_isfile, mock_listd
     assert drift[0][2] == str(["MiniMax-M3", "MiniMax-M2.7", "MiniMax-M2.7-highspeed"])
     assert drift[0][3] == str(["MiniMax-M2.7", "MiniMax-M3", "MiniMax-M2.7-highspeed"])
 
-@patch("skill_guard.os.listdir")
-@patch("skill_guard.os.path.isfile")
-def test_check_config_profiles(mock_isfile, mock_listdir):
-    mock_listdir.return_value = ["test_profile"]
-    mock_isfile.return_value = True
+class MockDirEntry:
+    def __init__(self, name, is_dir_val=True):
+        self.name = name
+        self._is_dir = is_dir_val
+    def is_dir(self):
+        return self._is_dir
+
+@patch("skill_guard.os.scandir")
+def test_check_config_profiles(mock_scandir):
+    mock_scandir.return_value = [MockDirEntry("test_profile")]
 
     def mock_open_side_effect(path, *args, **kwargs):
         m = mock_open()
@@ -126,7 +131,8 @@ def test_check_config_profiles(mock_isfile, mock_listdir):
         return m()
 
     with patch("skill_guard.io.open", side_effect=mock_open_side_effect):
-        drift = skill_guard.check_config()
-        assert len(drift) == 1
-        assert drift[0][0] == os.path.join("profiles", "test_profile", "config.yaml")
-        assert drift[0][1] == "fallback_providers[0:3]"
+        with patch("builtins.open", side_effect=mock_open_side_effect):
+            drift = skill_guard.check_config()
+            assert len(drift) == 1
+            assert drift[0][0] == os.path.join("profiles", "test_profile", "config.yaml")
+            assert drift[0][1] == "fallback_providers[0:3]"

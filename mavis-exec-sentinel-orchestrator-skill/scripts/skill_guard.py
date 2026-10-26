@@ -118,14 +118,25 @@ def check_config():
             drift.append(("config.yaml", "fallback_providers[0:3]", str(LADDER), str(models[:3])))
     # every profile: parse and check ladder-first
     prof = os.path.join(HERMES, "profiles")
-    for name in sorted(os.listdir(prof)):
+    pm_regex = re.compile(r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)")
+    ms_regex = re.compile(r"    model: (\S+)")
+
+    try:
+        entries = sorted(e.name for e in os.scandir(prof) if e.is_dir())
+    except OSError:
+        entries = []
+
+    for name in entries:
         p = os.path.join(prof, name, "config.yaml")
-        if not os.path.isfile(p):
+        try:
+            with open(p, encoding="utf-8") as f:
+                pt = f.read()
+        except OSError:
             continue
-        pt = io.open(p, encoding="utf-8").read()
-        pm = re.search(r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)", pt)
+
+        pm = pm_regex.search(pt)
         if pm:
-            ms = re.findall(r"    model: (\S+)", pm.group(1))
+            ms = ms_regex.findall(pm.group(1))
             if ms[:3] != LADDER:
                 drift.append((os.path.join("profiles", name, "config.yaml"),
                               "fallback_providers[0:3]", str(LADDER), str(ms[:3])))

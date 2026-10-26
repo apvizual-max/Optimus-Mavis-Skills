@@ -57,7 +57,7 @@ def audit_docker():
         for cname, p in unhardened:
             print(f"  - {cname}: {p}")
     else:
-        print(f"[PASS] 100% of published ports are strictly bound to 127.0.0.1 (Loopback Hardened).")
+        print("[PASS] 100% of published ports are strictly bound to 127.0.0.1 (Loopback Hardened).")
 
     if vault_port_ok:
         print("[PASS] HashiCorp Vault is correctly mapped to 127.0.0.1:8201:8200 (OpenWhispr collision evaded).")

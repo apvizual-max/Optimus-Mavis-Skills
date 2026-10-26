@@ -16,7 +16,6 @@ CRITICAL RULES:
 
 import re
 import argparse
-import sys
 from pathlib import Path
 
 # ── Configuration ─────────────────────────────────────────────────────────────
@@ -98,7 +97,7 @@ def run(root: Path, dry_run: bool = True):
     total_replacements = 0
 
     if dry_run:
-        print(f"DRY RUN — no files will be modified\n")
+        print("DRY RUN — no files will be modified\n")
     else:
         print(f"APPLYING changes to: {root}\n")
 

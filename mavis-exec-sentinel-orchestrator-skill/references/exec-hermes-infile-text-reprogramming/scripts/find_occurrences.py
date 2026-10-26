@@ -15,6 +15,7 @@ import re
 import sys
 import argparse
 from pathlib import Path
+import concurrent.futures
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -69,6 +70,7 @@ def run(root: Path, summary_only: bool = False):
     total_files = 0
     results = []
 
+    valid_paths = []
     for path in root.rglob('*'):
         if not path.is_file():
             continue
@@ -76,12 +78,15 @@ def run(root: Path, summary_only: bool = False):
             continue
         if path.suffix.lower() not in TEXT_EXTENSIONS:
             continue
+        valid_paths.append(path)
 
-        hits = scan_file(path)
-        if hits:
-            total_files += 1
-            total_matches += len(hits)
-            results.append((path, hits))
+    if valid_paths:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for path, hits in zip(valid_paths, executor.map(scan_file, valid_paths)):
+                if hits:
+                    total_files += 1
+                    total_matches += len(hits)
+                    results.append((path, hits))
 
     if not summary_only:
         for path, hits in sorted(results, key=lambda x: str(x[0])):

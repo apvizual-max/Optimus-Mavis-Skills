@@ -48,4 +48,17 @@ test('processHooks', async (t) => {
         const date = new Date(result[0].processedAt);
         assert.ok(!isNaN(date.getTime()), 'processedAt should be a valid ISO string');
     });
+    await t.test('does not mutate original hook objects', () => {
+        const input = [{ id: 1, active: true, status: 'pending' }];
+        const result = processHooks(input);
+        assert.strictEqual(input[0].status, 'pending');
+        assert.strictEqual(result[0].status, 'ready');
+    });
+
+    await t.test('treats missing active property as inactive', () => {
+        const input = [{ id: 1 }, { id: 2, active: true }];
+        const result = processHooks(input);
+        assert.strictEqual(result.length, 1);
+        assert.strictEqual(result[0].id, 2);
+    });
 });

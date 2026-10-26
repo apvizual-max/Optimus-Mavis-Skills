@@ -24,7 +24,6 @@ import json
 import logging
 import os
 import uuid
-import shlex
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"

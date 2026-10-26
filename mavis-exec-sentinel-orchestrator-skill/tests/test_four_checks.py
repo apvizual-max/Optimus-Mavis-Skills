@@ -1,6 +1,5 @@
 import sys
 import os
-import pytest
 from unittest.mock import patch
 
 # Add the scripts directory to sys.path to import the module under test

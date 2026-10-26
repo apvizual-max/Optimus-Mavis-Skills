@@ -1,4 +1,3 @@
-import pytest
 import os
 import sys
 from unittest.mock import patch, mock_open

@@ -20,7 +20,10 @@ import 'dotenv/config';
 import express from 'express';
 
 const app = express();
-app.use(cors());
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["http://localhost:3000"];
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 const chatClient = new DataChatServiceClient();
@@ -34,7 +37,7 @@ app.post('/api/chat', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
-  const formattedHistory = [];
+  const formattedHistory: any[] = [];
   if (history && Array.isArray(history)) {
     for (const msg of history) {
       if (msg.role === 'user') {
@@ -73,7 +76,7 @@ app.post('/api/chat', async (req, res) => {
 
     const stream = chatClient.chat(chatRequest);
 
-    stream.on('data', (response) => {
+    stream.on('data', (response: any) => {
       const sysMsg = response.systemMessage;
       if (!sysMsg) return;
 
@@ -134,7 +137,7 @@ app.post('/api/chat', async (req, res) => {
       res.end();
     });
 
-    stream.on('error', (err) => {
+    stream.on('error', (err: any) => {
       console.error('Gemini API Error:', err);
       // Fallback response inside the API error
       res.write(

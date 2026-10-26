@@ -165,7 +165,7 @@ def main():
     try:
         io.open(STATE, "w", encoding="utf-8").write(json.dumps(baseline, indent=2))
     except OSError as e:
-        print(f"Warning: Failed to write baseline state to {STATE}: {e}")
+        sys.stderr.write(f"Warning: Failed to write baseline state to {STATE}: {e}\n")
 
     print("\nbaseline sha: %s" % baseline["root_config_sha"])
     if drift:

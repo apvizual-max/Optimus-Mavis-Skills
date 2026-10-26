@@ -5,3 +5,6 @@
 ## 2024-05-18 - Memoizing callbacks passed to Memoized components
 **Learning:** Even if a component like `AgentMessage` is wrapped in `React.memo()`, passing an inline arrow function as a prop (like `onInputResponses={(inputResponses) => agent.send({ inputResponses })}`) creates a new function reference on every render. This invalidates the memoization and causes the child component to re-render unnecessarily. When `useEveAgent()` triggers a state update, all previously rendered `AgentMessage` components in the list will re-render.
 **Action:** Always wrap callbacks passed to memoized child components in `useCallback()`, ensuring stable references. When the dependency is a method from a hook object (like `agent.send`), use the specific method in the dependency array (e.g., `[agent.send]`) rather than the whole object (`[agent]`) if the object itself is recreated on every render.
+## 2026-10-26 - Optimize File Reads in Configuration Validator
+**Learning:** Checking configuration drift across thousands of user profiles using `os.listdir`, `os.path.isfile`, and dynamically compiling `re` regex inside the loop is a significant bottleneck.
+**Action:** Use `os.scandir` to enumerate files and directories without extra `stat` calls, compile regexes outside the loop, and use `try/except FileNotFoundError` instead of `os.path.isfile` before reading file contents.

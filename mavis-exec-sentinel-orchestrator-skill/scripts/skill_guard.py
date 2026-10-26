@@ -118,16 +118,26 @@ def check_config():
             drift.append(("config.yaml", "fallback_providers[0:3]", str(LADDER), str(models[:3])))
     # every profile: parse and check ladder-first
     prof = os.path.join(HERMES, "profiles")
-    for name in sorted(os.listdir(prof)):
-        p = os.path.join(prof, name, "config.yaml")
-        if not os.path.isfile(p):
+    if not os.path.isdir(prof):
+        return drift
+
+    pm_pat = re.compile(r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)")
+    ms_pat = re.compile(r"    model: (\S+)")
+
+    for entry in sorted(os.scandir(prof), key=lambda e: e.name):
+        if not entry.is_dir():
             continue
-        pt = io.open(p, encoding="utf-8").read()
-        pm = re.search(r"(?ms)^fallback_providers:\n((?:  - provider:[^\n]*\n    model: [^\n]*\n)+)", pt)
+        p = os.path.join(entry.path, "config.yaml")
+        try:
+            with open(p, "rb") as f:
+                pt = f.read().decode("utf-8")
+        except FileNotFoundError:
+            continue
+        pm = pm_pat.search(pt)
         if pm:
-            ms = re.findall(r"    model: (\S+)", pm.group(1))
+            ms = ms_pat.findall(pm.group(1))
             if ms[:3] != LADDER:
-                drift.append((os.path.join("profiles", name, "config.yaml"),
+                drift.append((os.path.join("profiles", entry.name, "config.yaml"),
                               "fallback_providers[0:3]", str(LADDER), str(ms[:3])))
     return drift
 

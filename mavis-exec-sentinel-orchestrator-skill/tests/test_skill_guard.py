@@ -130,3 +130,41 @@ def test_check_config_profiles(mock_isfile, mock_listdir):
         assert len(drift) == 1
         assert drift[0][0] == os.path.join("profiles", "test_profile", "config.yaml")
         assert drift[0][1] == "fallback_providers[0:3]"
+
+INVALID_CONFIG_MISSING_KEYS = """
+model:
+  default: MiniMax-M3
+
+fallback_providers:
+  - provider: minimax
+    model: MiniMax-M3
+  - provider: minimax
+    model: MiniMax-M2.7
+  - provider: minimax
+    model: MiniMax-M2.7-highspeed
+"""
+
+@patch("skill_guard.os.listdir")
+@patch("skill_guard.os.path.isfile")
+@patch("skill_guard.io.open")
+def test_check_config_drift_missing_keys(mock_open_file, mock_isfile, mock_listdir):
+    mock_open_file.return_value.read.return_value = INVALID_CONFIG_MISSING_KEYS
+    mock_listdir.return_value = []
+    mock_isfile.return_value = False
+
+    drift = skill_guard.check_config()
+    assert len(drift) == 2
+    keys = [d[1] for d in drift]
+    assert "model.provider" in keys
+    assert "model.base_url" in keys
+
+@patch("skill_guard.os.listdir")
+@patch("skill_guard.os.path.isfile")
+def test_check_config_profiles_not_file(mock_isfile, mock_listdir):
+    mock_listdir.return_value = ["test_profile"]
+    mock_isfile.return_value = False
+
+    with patch("skill_guard.io.open") as mock_open_file:
+        mock_open_file.return_value.read.return_value = VALID_CONFIG
+        drift = skill_guard.check_config()
+        assert not drift

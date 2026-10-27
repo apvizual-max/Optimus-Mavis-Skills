@@ -3,7 +3,7 @@ import argparse
 import os
 import subprocess
 import sys
-from inspect_video import inspect_video, format_size
+from inspect_video import inspect_video
 
 def parse_timecode(time_str, total_duration=None):
     """Parses a time string (seconds, MM:SS, HH:MM:SS, or 'last') into float seconds."""
@@ -108,6 +108,7 @@ def prep_video(input_path, output_path, start_time_str=None, duration=10, fps=No
             orig_width = int(source_info["video"].get("width"))
             orig_height = int(source_info["video"].get("height"))
         except (ValueError, TypeError) as e:
+            # Exception is logged instead of silently passed to prevent hidden bugs.
             print(f"Warning: Could not parse original video dimensions ({e}).", file=sys.stderr)
 
     if resolution:
@@ -152,7 +153,7 @@ def prep_video(input_path, output_path, start_time_str=None, duration=10, fps=No
         scale_filter = f"scale={width}:{height}"
 
     fps_spec = f"{fps} fps" if fps else "Original frame rate"
-    print(f"\nPreparing Video Processing:")
+    print("\nPreparing Video Processing:")
     print(f"  * Source Duration: {total_duration:.2f}s")
     print(f"  * Trim Range     : Start at {start_seconds:.2f}s | Length {duration:.2f}s")
     if resolution:

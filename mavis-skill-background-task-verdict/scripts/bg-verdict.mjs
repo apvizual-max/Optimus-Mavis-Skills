@@ -93,10 +93,13 @@ function parseArgs(argv) {
 
 function canonicalExit(code) {
   if (typeof code !== 'number' || !Number.isFinite(code)) return null;
-  if (code >= 0 && code <= 0xffffffff) {
-    return code > 0x7fffffff ? code - 0x100000000 : code;
+  if (process.platform === 'win32') {
+    if (code >= 0 && code <= 0xffffffff) {
+      return code > 0x7fffffff ? code - 0x100000000 : code;
+    }
+    return code;
   }
-  return code;
+  return ((code % 256) + 256) % 256;
 }
 
 const args = parseArgs(process.argv.slice(2));

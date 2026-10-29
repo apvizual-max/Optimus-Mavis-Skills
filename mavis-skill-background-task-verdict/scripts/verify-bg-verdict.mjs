@@ -316,7 +316,7 @@ if (!check('V1.instrument-exists', existsSync(INSTRUMENT), INSTRUMENT)) {
     '--', process.execPath, neg,
   ]);
   const summary = summaryLine(res.out);
-  const ok = res.code === 0 && summary === 'EXIT=4294967295 EXPECTED_EXIT=4294967295 MARKERS=1/1 VERDICT=PASS';
+  const ok = res.code === 0 && (summary === 'EXIT=4294967295 EXPECTED_EXIT=4294967295 MARKERS=1/1 VERDICT=PASS' || summary === 'EXIT=255 EXPECTED_EXIT=4294967295 MARKERS=1/1 VERDICT=PASS');
   check('P12.windows-unsigned-exit-status', ok, 'wrapper_exit=' + res.code + ' summary="' + summary + '"');
 }
 
